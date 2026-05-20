@@ -1,0 +1,24 @@
+From: "Service Bancaire BNP" <noreply@bnp-paribas.fr>
+To: victime@gmail.com
+Subject: =?UTF-8?Q?Action_requise_:_votre_compte_est_suspendu?=
+Date: Mon, 19 May 2026 09:12:44 +0200
+Message-ID: <20260519091244.fake001@mail-relay-ru.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+Reply-To: collect-data@secure-bnp-verify.ru
+X-Originating-IP: 185.220.101.47
+X-Mailer: PhishKit v3.2
+Received: from mail-relay-ru.example.com (185.220.101.47) by mx.gmail.com
+  with SMTP id x9si123456; Mon, 19 May 2026 00:12:50 -0700
+Received: from unknown (HELO bulk-mailer.onion) (10.0.0.99)
+  by mail-relay-ru.example.com with SMTP; Mon, 19 May 2026 09:12:44 +0200
+
+<!DOCTYPE html>
+<html>
+<body style="font-family:Arial,sans-serif">
+<p>Cher client,</p>
+<p>Votre compte BNP Paribas a été <strong>temporairement suspendu</strong> suite à une activité suspecte.</p>
+<p>Veuillez <a href="http://secure-bnp-verify.ru/login?token=abc123">cliquer ici</a> pour réactiver votre compte dans les 24h.</p>
+<p>Cordialement,<br>Service Sécurité BNP Paribas</p>
+</body>
+</html>

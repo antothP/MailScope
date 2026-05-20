@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import DropZone from '../components/DropZone'
+import ScoreCard from '../components/ScoreCard'
 import { analyzeEml } from '../api/client'
-import { ParsedEmail } from '../types/analysis'
+import { AnalyzeResponse, AttachmentAnalysis, HeaderAnalysis, ParsedEmail, ScoreResult } from '../types/analysis'
+import { useExportPdf } from '../hooks/useExportPdf'
 
 const C = {
   base:    'bg-[var(--bg-base)]',
@@ -17,10 +19,10 @@ const C = {
 
 export default function Dashboard() {
   const [loading, setLoading]   = useState(false)
-  const [result, setResult]     = useState<ParsedEmail | null>(null)
+  const [result, setResult]     = useState<AnalyzeResponse | null>(null)
   const [error, setError]       = useState<string | null>(null)
   const [filename, setFilename] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'auth' | 'headers' | 'body'>('overview')
 
   async function handleFile(file: File) {
     setError(null); setResult(null); setFilename(file.name); setLoading(true)
@@ -92,7 +94,7 @@ export default function Dashboard() {
           <DropZone onFile={handleFile} loading={true} />
         </div>
       ) : result ? (
-        <ResultDashboard result={result!} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <ResultDashboard result={result!.email} headerAnalysis={result!.header_analysis} attachmentAnalyses={result!.attachment_analyses} score={result!.score} fullData={result!} emailFilename={filename ?? undefined} activeTab={activeTab} setActiveTab={setActiveTab} />
       ) : null}
     </div>
   )
@@ -100,31 +102,56 @@ export default function Dashboard() {
 
 /* ─── Dashboard résultats ─── */
 
-function ResultDashboard({ result, activeTab, setActiveTab }: {
+function ResultDashboard({ result, headerAnalysis, attachmentAnalyses, score, fullData, emailFilename, activeTab, setActiveTab }: {
   result: ParsedEmail
-  activeTab: 'overview' | 'headers' | 'body'
-  setActiveTab: (t: 'overview' | 'headers' | 'body') => void
+  headerAnalysis: HeaderAnalysis
+  attachmentAnalyses: AttachmentAnalysis[]
+  score: ScoreResult
+  fullData: AnalyzeResponse
+  emailFilename?: string
+  activeTab: 'overview' | 'headers' | 'body' | 'auth'
+  setActiveTab: (t: 'overview' | 'headers' | 'body' | 'auth') => void
 }) {
   const headerCount = Object.keys(result.headers).length
+  const flagCount   = headerAnalysis.suspicious_flags.length
+  const { exportPdf, exporting } = useExportPdf()
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className={`border-b ${C.border} ${C.surface} px-6 flex items-center gap-1`}>
         {([
           { id: 'overview', label: 'Vue générale' },
+          { id: 'auth',     label: 'Authentification', badge: flagCount > 0 ? flagCount : null },
           { id: 'headers',  label: `Headers bruts (${headerCount})` },
           { id: 'body',     label: 'Corps du message' },
         ] as const).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors duration-150
+            className={`relative px-4 py-3 text-sm font-medium border-b-2 transition-colors duration-150 flex items-center gap-2
               ${activeTab === tab.id ? `border-[var(--accent)] ${C.accent}` : `border-transparent ${C.muted} hover:${C.text}`}`}>
             {tab.label}
+            {'badge' in tab && tab.badge !== null && (
+              <span className="bg-[#dc2626] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
+        <div className="ml-auto">
+          <button onClick={() => exportPdf(fullData, emailFilename)} disabled={exporting}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors duration-150
+              ${C.border} ${C.muted} hover:${C.text} disabled:opacity-50`}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            {exporting ? 'Export…' : 'Exporter PDF'}
+          </button>
+        </div>
       </div>
-      <div className="flex-1 overflow-auto p-6">
-        {activeTab === 'overview' && <OverviewTab result={result} />}
-        {activeTab === 'headers'  && <HeadersTab  result={result} />}
-        {activeTab === 'body'     && <BodyTab      result={result} />}
+      <div id="pdf-export-target" className="flex-1 overflow-auto p-6">
+        {activeTab === 'overview' && <OverviewTab result={result} headerAnalysis={headerAnalysis} attachmentAnalyses={attachmentAnalyses} score={score} />}
+        {activeTab === 'auth'     && <AuthTab headerAnalysis={headerAnalysis} />}
+        {activeTab === 'headers'  && <HeadersTab result={result} />}
+        {activeTab === 'body'     && <BodyTab result={result} />}
       </div>
     </div>
   )
@@ -132,9 +159,15 @@ function ResultDashboard({ result, activeTab, setActiveTab }: {
 
 /* ─── Onglet Vue générale ─── */
 
-function OverviewTab({ result }: { result: ParsedEmail }) {
+function OverviewTab({ result, headerAnalysis, attachmentAnalyses, score }: { result: ParsedEmail; headerAnalysis: HeaderAnalysis; attachmentAnalyses: AttachmentAnalysis[]; score: ScoreResult }) {
   return (
     <div className="grid grid-cols-12 gap-4 max-w-7xl mx-auto">
+
+      {/* Score card pleine largeur */}
+      <div className="col-span-12">
+        <ScoreCard score={score} headerAnalysis={headerAnalysis} attachmentAnalyses={attachmentAnalyses} />
+      </div>
+
       <div className="col-span-12 lg:col-span-8 space-y-4">
 
         <div className={`animate-fade-up rounded-xl border ${C.border} ${C.surface} p-5`}>
@@ -180,6 +213,88 @@ function OverviewTab({ result }: { result: ParsedEmail }) {
             ? <pre className={`${C.muted} text-sm font-sans leading-relaxed whitespace-pre-wrap break-words line-clamp-6 overflow-hidden`}>{result.body_text}</pre>
             : <p className={`${C.muted} text-sm italic`}>Aucun corps texte</p>}
         </div>
+
+        {/* ── Pièces jointes (pleine largeur colonne gauche) ── */}
+        {attachmentAnalyses.length > 0 && (
+          <div className={`animate-fade-up delay-3 rounded-xl border ${C.border} ${C.surface} p-4`}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-[#f85149]/10 flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-[#f85149]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"/>
+                </svg>
+              </div>
+              <span className={`${C.muted} text-xs uppercase tracking-widest font-medium`}>
+                Pièces jointes ({attachmentAnalyses.length})
+              </span>
+            </div>
+            <div className="space-y-3">
+              {attachmentAnalyses.map((a, i) => {
+                const riskStyle = {
+                  safe:       { border: C.border,              bg: C.card,          badge: 'bg-[#16a34a]/10 text-[#16a34a] border-[#16a34a]/20', label: 'Sûr' },
+                  suspicious: { border: 'border-[#d29922]/40', bg: 'bg-[#d29922]/5', badge: 'bg-[#d29922]/10 text-[#d29922] border-[#d29922]/20', label: 'Suspect' },
+                  dangerous:  { border: 'border-[#dc2626]/40', bg: 'bg-[#dc2626]/5', badge: 'bg-[#dc2626]/10 text-[#dc2626] border-[#dc2626]/20', label: 'Dangereux' },
+                }[a.risk]
+                return (
+                  <div key={i} className={`rounded-lg border ${riskStyle.border} ${riskStyle.bg} p-4`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-9 h-9 rounded-lg ${C.base} border ${C.border2} flex items-center justify-center shrink-0`}>
+                        <FileIcon mime={a.real_mime} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`${C.text} text-sm font-semibold truncate`}>{a.filename}</p>
+                        <p className={`${C.muted} text-xs`}>{(a.size / 1024).toFixed(1)} Ko · {a.extension || 'sans extension'}</p>
+                      </div>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${riskStyle.badge}`}>
+                        {riskStyle.label}
+                      </span>
+                    </div>
+
+                    {/* Comparaison type déclaré vs réel */}
+                    <div className={`rounded-lg ${C.base} border ${C.border} grid grid-cols-2`}>
+                      <div className="px-4 py-3">
+                        <p className={`${C.muted} text-[10px] uppercase tracking-widest mb-1`}>Type déclaré</p>
+                        <p className={`text-sm font-mono ${C.text}`}>{a.declared_mime}</p>
+                      </div>
+                      <div className={`px-4 py-3 border-l ${C.border}`}>
+                        <p className={`text-[10px] uppercase tracking-widest mb-1 ${a.mime_mismatch ? 'text-[#dc2626]' : C.muted}`}>
+                          Type réel (magic bytes)
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-mono font-semibold ${a.mime_mismatch ? 'text-[#dc2626]' : 'text-[#16a34a]'}`}>
+                            {a.real_mime}
+                          </p>
+                          <span className={`text-base font-bold ${a.mime_mismatch ? 'text-[#dc2626]' : 'text-[#16a34a]'}`}>
+                            {a.mime_mismatch ? '✗' : '✓'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {(a.has_macros || a.has_js_in_pdf || a.double_extension) && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {a.has_macros && (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-[#dc2626]/10 text-[#dc2626] border border-[#dc2626]/20 font-medium">
+                            Macros VBA{a.macro_details.length > 0 ? ` · ${a.macro_details.join(', ')}` : ''}
+                          </span>
+                        )}
+                        {a.has_js_in_pdf && (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-[#dc2626]/10 text-[#dc2626] border border-[#dc2626]/20 font-medium">
+                            JavaScript dans PDF
+                          </span>
+                        )}
+                        {a.double_extension && (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-[#d29922]/10 text-[#d29922] border border-[#d29922]/20 font-medium">
+                            Double extension
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="col-span-12 lg:col-span-4 space-y-4">
@@ -206,31 +321,127 @@ function OverviewTab({ result }: { result: ParsedEmail }) {
           </div>
         </div>
 
-        {result.attachments.length > 0 && (
-          <div className={`animate-slide-right delay-2 rounded-xl border ${C.border} ${C.surface} p-4`}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-[#f85149]/10 flex items-center justify-center">
-                <svg className="w-3.5 h-3.5 text-[#f85149]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"/>
-                </svg>
-              </div>
-              <span className={`${C.muted} text-xs uppercase tracking-widest font-medium`}>Pièces jointes</span>
-            </div>
-            <div className="space-y-2">
-              {result.attachments.map((a, i) => (
-                <div key={i} className={`flex items-center gap-2.5 rounded-lg ${C.card} border ${C.border} px-3 py-2`}>
-                  <div className={`w-7 h-7 rounded-md ${C.base} border ${C.border2} flex items-center justify-center shrink-0`}>
-                    <FileIcon mime={a.content_type} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={`${C.text} text-xs font-medium truncate`}>{a.filename}</p>
-                    <p className={`${C.muted} text-xs`}>{(a.size / 1024).toFixed(1)} Ko</p>
-                  </div>
-                  <MimeBadge mime={a.content_type} />
-                </div>
-              ))}
-            </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Onglet Authentification ─── */
+
+function AuthTab({ headerAnalysis: h }: { headerAnalysis: HeaderAnalysis }) {
+  return (
+    <div className="max-w-4xl mx-auto space-y-4 animate-fade-up">
+
+      {/* Flags suspects */}
+      {h.suspicious_flags.length > 0 && (
+        <div className="rounded-xl border border-[#dc2626]/30 bg-[#dc2626]/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <svg className="w-4 h-4 text-[#dc2626]" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
+            </svg>
+            <span className="text-[#dc2626] text-xs font-semibold uppercase tracking-widest">
+              {h.suspicious_flags.length} indicateur{h.suspicious_flags.length > 1 ? 's' : ''} suspect{h.suspicious_flags.length > 1 ? 's' : ''}
+            </span>
           </div>
+          <ul className="space-y-1.5">
+            {h.suspicious_flags.map((f, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[#dc2626]">
+                <span className="mt-1 shrink-0">•</span>
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* SPF / DKIM / DMARC */}
+      <div className={`rounded-xl border ${C.border} ${C.surface} p-4`}>
+        <span className={`${C.muted} text-xs uppercase tracking-widest font-medium`}>Authentification</span>
+        <div className="grid grid-cols-3 gap-3 mt-3">
+          <AuthCard label="SPF"   result={h.spf} />
+          <AuthCard label="DKIM"  result={h.dkim} />
+          <AuthCard label="DMARC" result={h.dmarc} />
+        </div>
+      </div>
+
+      {/* Identité */}
+      <div className={`rounded-xl border ${C.border} ${C.surface} p-4 space-y-2`}>
+        <span className={`${C.muted} text-xs uppercase tracking-widest font-medium`}>Identité</span>
+        <div className="mt-3 space-y-2">
+          <InfoRow label="Message-ID"   value={h.message_id} />
+          <InfoRow label="Return-Path"  value={h.return_path} />
+          {h.reply_to && (
+            <InfoRow
+              label="Reply-To"
+              value={h.reply_to.address}
+              warn={h.reply_to.differs_from_sender}
+              warnMsg="Domaine différent de l'expéditeur"
+            />
+          )}
+          <InfoRow label="IP d'origine" value={h.x_originating_ip} />
+        </div>
+      </div>
+
+      {/* Hops Received */}
+      {h.received_hops.length > 0 && (
+        <div className={`rounded-xl border ${C.border} ${C.surface} p-4`}>
+          <span className={`${C.muted} text-xs uppercase tracking-widest font-medium`}>
+            Chemin de routage ({h.received_hops.length} hop{h.received_hops.length > 1 ? 's' : ''})
+          </span>
+          <div className="mt-3 space-y-2">
+            {h.received_hops.map((hop, i) => (
+              <div key={i} className={`rounded-lg ${C.card} border ${C.border} px-3 py-2.5`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-[10px] font-bold ${C.muted} bg-[var(--bg-surface)] border ${C.border} px-1.5 py-0.5 rounded`}>
+                    #{i + 1}
+                  </span>
+                  {hop.timestamp && <span className={`text-xs ${C.muted}`}>{hop.timestamp}</span>}
+                </div>
+                <div className="space-y-0.5">
+                  {hop.from_ && <p className="text-xs font-mono text-[var(--text)]"><span className={`${C.muted}`}>from </span>{hop.from_}</p>}
+                  {hop.by    && <p className="text-xs font-mono text-[var(--text)]"><span className={`${C.muted}`}>by   </span>{hop.by}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AuthCard({ label, result }: { label: string; result: { present: boolean; pass_: boolean | null } }) {
+  const state = !result.present ? 'absent' : result.pass_ === true ? 'pass' : result.pass_ === false ? 'fail' : 'unknown'
+  const styles = {
+    pass:    { bg: 'bg-[#16a34a]/10 border-[#16a34a]/30', text: 'text-[#16a34a]', icon: '✓', label: 'Passé' },
+    fail:    { bg: 'bg-[#dc2626]/10 border-[#dc2626]/30', text: 'text-[#dc2626]', icon: '✗', label: 'Échoué' },
+    absent:  { bg: `${C.surface} ${C.border}`,            text: C.muted,          icon: '—', label: 'Absent' },
+    unknown: { bg: 'bg-[#d29922]/10 border-[#d29922]/30', text: 'text-[#d29922]', icon: '?', label: 'Inconnu' },
+  }[state]
+
+  return (
+    <div className={`rounded-lg border p-3 text-center ${styles.bg}`}>
+      <p className={`text-2xl font-bold ${styles.text}`}>{styles.icon}</p>
+      <p className={`text-xs font-semibold mt-1 ${styles.text}`}>{label}</p>
+      <p className={`text-xs mt-0.5 ${styles.text} opacity-80`}>{styles.label}</p>
+    </div>
+  )
+}
+
+function InfoRow({ label, value, warn, warnMsg }: {
+  label: string
+  value: string | null | undefined
+  warn?: boolean
+  warnMsg?: string
+}) {
+  if (!value) return null
+  return (
+    <div className="flex gap-3 items-start">
+      <span className={`${C.muted} text-xs w-28 shrink-0 pt-0.5`}>{label}</span>
+      <div className="min-w-0">
+        <span className={`text-xs font-mono break-all ${warn ? 'text-[#d29922]' : C.text}`}>{value}</span>
+        {warn && warnMsg && (
+          <span className="ml-2 text-[10px] text-[#d29922] bg-[#d29922]/10 border border-[#d29922]/20 px-1.5 py-0.5 rounded-full">{warnMsg}</span>
         )}
       </div>
     </div>
@@ -324,14 +535,6 @@ function Badge({ label, color }: { label: string; color: 'yellow' | 'blue' | 'gr
   return <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${cls}`}>{label}</span>
 }
 
-function MimeBadge({ mime }: { mime: string }) {
-  const short = mime.split('/')[1]?.split(';')[0] ?? mime
-  return (
-    <span className={`text-[10px] ${C.muted} ${C.base} border ${C.border2} px-1.5 py-0.5 rounded font-mono shrink-0`}>
-      {short}
-    </span>
-  )
-}
 
 function FileIcon({ mime }: { mime: string }) {
   const color = mime.startsWith('image/') ? 'text-[#3fb950]'

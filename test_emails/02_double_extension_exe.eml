@@ -1,0 +1,31 @@
+Content-Type: multipart/mixed; boundary="===============0739765405173845965=="
+MIME-Version: 1.0
+From: invoice@legitimate-looking-domain.com
+To: comptabilite@entreprise.fr
+Subject: Facture 2026-0547 - Reglement urgent
+Date: Tue, 20 May 2026 14:33:00 +0200
+Message-ID: <20260520143300.fake002@legitimate-looking-domain.com>
+X-Originating-IP: 91.108.4.200
+Received: from legitimate-looking-domain.com (91.108.4.200) by mx.entreprise.fr with SMTP
+
+--===============0739765405173845965==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+Qm9uam91ciwKClZldWlsbGV6IHRyb3V2ZXIgY2ktam9pbnQgbGEgZmFjdHVyZSAyMDI2LTA1NDcg
+cG91ciB1biBtb250YW50IGRlIDQgODcyLDAwIEVVUi4KCk1lcmNpIGRlIHByb2NlZGVyIGF1IHJl
+Z2xlbWVudCBzb3VzIDQ4aC4KCkNvcmRpYWxlbWVudCwKU2VydmljZSBDb21wdGFiaWxpdGU=
+
+--===============0739765405173845965==
+Content-Type: application/pdf
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Facture_2026-0547.pdf.exe"
+
+TVqQAAMAAAAEAAAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+--===============0739765405173845965==--

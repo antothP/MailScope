@@ -1,6 +1,6 @@
-import { ParsedEmail } from '../types/analysis'
+import { AnalyzeResponse } from '../types/analysis'
 
-export async function analyzeEml(file: File): Promise<ParsedEmail> {
+export async function analyzeEml(file: File): Promise<AnalyzeResponse> {
   const form = new FormData()
   form.append('file', file)
 
