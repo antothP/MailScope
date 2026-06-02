@@ -1,0 +1,33 @@
+Content-Type: multipart/mixed; boundary="===============8636839253978456537=="
+MIME-Version: 1.0
+From: notaire@cabinet-juridique.fr
+To: client@gmail.com
+Subject: =?utf-8?q?Document_=C3=A0_signer_-_Acte_notari=C3=A9?=
+Date: Thu, 22 May 2026 10:00:00 +0200
+Message-ID: <20260522100000.fake004@cabinet-juridique.fr>
+Received: from cabinet-juridique.fr (62.210.180.44) by mx.gmail.com with SMTP; Thu, 22 May 2026 01:00:05 -0700
+
+--===============8636839253978456537==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+Qm9uam91ciwKClZldWlsbGV6IHRyb3V2ZXIgY2ktam9pbnQgbCdhY3RlIG5vdGFyacOpIHBvdXIg
+c2lnbmF0dXJlLgoKTWHDrnRyZSBEdXBvbnQ=
+
+--===============8636839253978456537==
+Content-Type: application/pdf
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Acte_notarie_2026.pdf"
+
+JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUi9PcGVuQWN0aW9uIDQg
+MCBSPj5lbmRvYmoKMiAwIG9iajw8L1R5cGUvUGFnZXMvS2lkc1szIDAgUl0vQ291bnQgMT4+ZW5k
+b2JqCjMgMCBvYmo8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL01lZGlhQm94WzAgMCA2MTIgNzky
+XT4+ZW5kb2JqCjQgMCBvYmo8PC9UeXBlL0FjdGlvbi9TL0phdmFTY3JpcHQvSlMoYXBwLmFsZXJ0
+KCJwd25lZCIpOyB0aGlzLnN1Ym1pdEZvcm0oImh0dHA6Ly9ldmlsLnJ1L3N0ZWFsIik7KT4+ZW5k
+b2JqCnhyZWYKMCA1CjAwMDAwMDAwMDAgNjU1MzUgZgowMDAwMDAwMDA5IDAwMDAwIG4KMDAwMDAw
+MDA1OCAwMDAwMCBuCjAwMDAwMDAxMTUgMDAwMDAgbgowMDAwMDAwMjA2IDAwMDAwIG4KdHJhaWxl
+cjw8L1NpemUgNS9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjM0MAolJUVPRg==
+
+--===============8636839253978456537==--

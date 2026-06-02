@@ -1,0 +1,32 @@
+Content-Type: multipart/alternative; boundary="===============8620324219520524753=="
+MIME-Version: 1.0
+From: "Service BNP Paribas" <noreply@bnp-paribas.fr>
+To: victime@gmail.com
+Subject: Action requise : votre compte est suspendu
+Date: Mon, 19 May 2026 09:12:44 +0200
+Message-ID: <20260519091244.fake001@mail-relay.ru>
+Reply-To: collect@secure-bnp-verify.ru
+X-Originating-IP: 185.220.101.47
+X-Mailer: PhishKit v3.2
+Received: from mail-relay.ru (185.220.101.47) by mx.gmail.com with SMTP; Mon, 19 May 2026 00:12:50 -0700
+
+--===============8620324219520524753==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+Vm90cmUgY29tcHRlIEJOUCBQYXJpYmFzIGVzdCBzdXNwZW5kdS4gQ2xpcXVleiBpY2kgOiBodHRw
+Oi8vc2VjdXJlLWJucC12ZXJpZnkucnUvbG9naW4=
+
+--===============8620324219520524753==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+CiAgICAgICAgPHA+Q2hlciBjbGllbnQsPC9wPgogICAgICAgIDxwPlZvdHJl
+IGNvbXB0ZSBhIMOpdMOpIDxzdHJvbmc+c3VzcGVuZHU8L3N0cm9uZz4uPC9wPgogICAgICAgIDxw
+PjxhIGhyZWY9Imh0dHA6Ly9zZWN1cmUtYm5wLXZlcmlmeS5ydS9sb2dpbj90b2tlbj1hYmMxMjMi
+PlLDqWFjdGl2ZXIgbW9uIGNvbXB0ZTwvYT48L3A+CiAgICAgICAgPHA+U2VydmljZSBTw6ljdXJp
+dMOpIEJOUCBQYXJpYmFzPC9wPgogICAgICAgIDwvYm9keT48L2h0bWw+
+
+--===============8620324219520524753==--
