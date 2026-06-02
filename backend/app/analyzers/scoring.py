@@ -4,7 +4,7 @@ from models.analysis import HeaderAnalysis, AttachmentAnalysis
 class ScoreResult:
     def __init__(self):
         self.score: int = 0
-        self.level: str = "safe"       # safe / suspicious / dangerous
+        self.level: str = "safe"
         self.reasons: list[str] = []
 
     def add(self, points: int, reason: str):
