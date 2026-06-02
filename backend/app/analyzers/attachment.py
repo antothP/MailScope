@@ -52,7 +52,7 @@ def _check_macros(filename: str, raw: bytes) -> tuple[bool, list[str]]:
         if not vba.detect_vba_macros():
             return False, []
         details = []
-        for _, _, vba_code in vba.extract_macros():
+        for *_, vba_code in vba.extract_macros():
             if vba_code:
                 # On relève les appels suspects courants
                 for kw in ('Shell', 'CreateObject', 'WScript', 'PowerShell',
