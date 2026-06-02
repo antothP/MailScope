@@ -16,6 +16,40 @@ const RISK_LABEL: Record<string, string> = {
   safe: 'Sûr', suspicious: 'Suspect', dangerous: 'Dangereux',
 }
 
+interface ThreatInfo { label: string; detail: string }
+
+function getThreat(a: AttachmentAnalysis): ThreatInfo | null {
+  if (a.risk === 'safe' && !a.mime_mismatch) return null
+
+  const real = a.real_mime.toLowerCase()
+  const ext  = a.extension.toLowerCase()
+
+  if (a.has_macros)
+    return { label: 'Macro malveillante', detail: 'Document Office avec macros VBA auto-exécutables (AutoOpen/AutoClose)' }
+
+  if (a.has_js_in_pdf)
+    return { label: 'PDF piégé', detail: 'PDF contenant du JavaScript embarqué pouvant exécuter du code à l\'ouverture' }
+
+  if (a.double_extension)
+    return { label: 'Double extension', detail: `Fichier se faisant passer pour .${ext} mais portant une extension exécutable cachée` }
+
+  if (a.mime_mismatch) {
+    if (real.includes('x-dosexec') || real.includes('x-msdownload') || real.includes('octet-stream'))
+      return { label: 'Trojan/Exécutable déguisé', detail: `Exécutable Windows (PE32/MZ) dissimulé sous une extension .${ext}` }
+    if (real.includes('x-sh') || real.includes('shellscript'))
+      return { label: 'Script shell déguisé', detail: `Script bash/sh caché sous l'extension .${ext}` }
+    if (real.includes('zip') || real.includes('rar') || real.includes('7z'))
+      return { label: 'Archive déguisée', detail: `Archive compressée cachée sous l'extension .${ext} — peut contenir des fichiers malveillants` }
+    if (real.includes('html') || real.includes('xml'))
+      return { label: 'HTML/Phishing déguisé', detail: `Page HTML cachée sous l'extension .${ext} — potentiel formulaire de phishing` }
+    if (real.includes('pdf'))
+      return { label: 'PDF déguisé', detail: `Fichier PDF réel dissimulé sous l'extension .${ext}` }
+    return { label: 'Type falsifié', detail: `Type réel (${a.real_mime}) ne correspond pas à l'extension déclarée (.${ext})` }
+  }
+
+  return null
+}
+
 function AuthBadge({ label, present, pass_ }: { label: string; present: boolean; pass_: boolean | null }) {
   const ok = present && pass_ === true
   const fail = present && pass_ === false
@@ -92,13 +126,52 @@ export default function ScoreCard({ score, headerAnalysis, attachmentAnalyses }:
           {attachmentAnalyses.length > 0 && (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
               <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest font-medium mb-3">Pièces jointes</p>
-              <div className="space-y-1">
-                {attachmentAnalyses.map((a, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-[var(--text)] truncate max-w-[200px]">{a.filename}</span>
-                    <span className={`font-semibold ${RISK_COLOR[a.risk]}`}>{RISK_LABEL[a.risk]}</span>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {attachmentAnalyses.map((a, i) => {
+                  const threat = getThreat(a)
+                  return (
+                    <div key={i} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm gap-4">
+                        <span className="text-[var(--text)] truncate font-medium">{a.filename}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {threat && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#dc2626]/10 text-[#dc2626]">
+                              {threat.label}
+                            </span>
+                          )}
+                          <span className={`text-xs font-semibold ${RISK_COLOR[a.risk]}`}>{RISK_LABEL[a.risk]}</span>
+                        </div>
+                      </div>
+                      {threat && (
+                        <p className="text-xs text-[var(--text-muted)] leading-snug">{threat.detail}</p>
+                      )}
+                      {/* Hash + liens lookup */}
+                      <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-base)] px-3 py-2 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-medium shrink-0">SHA256</span>
+                          <span className="text-[10px] font-mono text-[var(--text)] truncate">{a.sha256}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-medium shrink-0">Lookup</span>
+                          <div className="flex gap-2">
+                            <a
+                              href={`https://www.virustotal.com/gui/file/${a.sha256}`}
+                              target="_blank" rel="noreferrer"
+                              className="text-xs font-semibold px-3 py-1 rounded border border-[#1a73e8]/30 text-[#1a73e8] bg-[#1a73e8]/5 hover:bg-[#1a73e8]/10 transition-colors">
+                              VirusTotal
+                            </a>
+                            <a
+                              href={`https://bazaar.abuse.ch/browse.php?search=sha256%3A${a.sha256}`}
+                              target="_blank" rel="noreferrer"
+                              className="text-xs font-semibold px-3 py-1 rounded border border-[#d29922]/30 text-[#d29922] bg-[#d29922]/5 hover:bg-[#d29922]/10 transition-colors">
+                              MalwareBazaar
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}

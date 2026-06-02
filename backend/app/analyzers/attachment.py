@@ -1,4 +1,5 @@
 import io
+import hashlib
 import magic
 import fitz  # pymupdf
 from oletools.olevba import VBA_Parser, TYPE_OLE, TYPE_OpenXML
@@ -139,12 +140,15 @@ def analyze_attachment(filename: str, declared_mime: str, raw: bytes) -> Attachm
     else:
         risk = RiskLevel.SAFE
 
+    sha256 = hashlib.sha256(raw).hexdigest()
+
     return AttachmentAnalysis(
         filename=filename,
         declared_mime=declared_mime,
         real_mime=real_mime,
         extension=ext,
         size=len(raw),
+        sha256=sha256,
         mime_mismatch=mime_mismatch,
         has_macros=has_macros,
         macro_details=macro_details,

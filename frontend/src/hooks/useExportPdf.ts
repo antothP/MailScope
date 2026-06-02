@@ -85,21 +85,23 @@ export function useExportPdf(filename = 'mailscope-rapport.pdf') {
       const { score } = data
       const lvlColor = COLORS[score.level]
       const bgLight = lvlColor.map(c => Math.min(255, c + 185)) as [number,number,number]
-      fillRect(14, y, W - 28, 30, bgLight)
+      const filteredReasons = score.reasons.filter(r => !/spf|dkim|dmarc/i.test(r))
+      const cardH = 20 + Math.max(0, filteredReasons.length) * 5 + 8
+      fillRect(14, y, W - 28, cardH, bgLight)
       doc.setDrawColor(...lvlColor); doc.setLineWidth(0.5)
-      doc.rect(14, y, W - 28, 30)
-      text(String(score.score), 38, y + 20, 28, lvlColor, 'center', true)
-      text('/100', 38, y + 27, 7, lvlColor, 'center')
+      doc.rect(14, y, W - 28, cardH)
+      text(String(score.score), 38, y + 14, 28, lvlColor, 'center', true)
+      text('/100', 38, y + 21, 7, lvlColor, 'center')
       text(LEVEL_LABEL[score.level], 60, y + 13, 18, lvlColor, 'left', true)
-      if (score.reasons.length > 0) {
+      if (filteredReasons.length > 0) {
         let ry = y + 20
-        const filtered = score.reasons.filter(r => !/spf|dkim|dmarc/i.test(r))
-        filtered.slice(0, 3).forEach(r => {
-          text(`• ${r}`, 60, ry, 8, COLORS.text)
-          ry += 5
+        filteredReasons.forEach(r => {
+          doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...COLORS.text)
+          const lines = doc.splitTextToSize(`• ${r}`, W - 28 - 60 - 6)
+          lines.forEach((l: string) => { doc.text(l, 60, ry); ry += 4.5 })
         })
       }
-      y += 38
+      y += cardH + 6
 
       // ─── INFORMATIONS EMAIL ──────────────────────────────────
       y = sectionTitle('Informations de l\'email', y)
@@ -145,12 +147,14 @@ export function useExportPdf(filename = 'mailscope-rapport.pdf') {
         y += 13
       }
 
-      // ─── FLAGS SUSPECTS ──────────────────────────────────────
-      if (h.suspicious_flags.length > 0) {
+      // ─── FLAGS SUSPECTS (hors SPF/DKIM/DMARC déjà affichés) ──
+      const suspiciousFlags = h.suspicious_flags.filter(f => !/spf|dkim|dmarc/i.test(f))
+      if (suspiciousFlags.length > 0) {
         y = sectionTitle('Flags suspects détectés', y)
-        h.suspicious_flags.forEach(f => {
-          text(`• ${f}`, 17, y, 8.5, COLORS.dangerous)
-          y += 5.5
+        suspiciousFlags.forEach(f => {
+          doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...COLORS.dangerous)
+          const lines = doc.splitTextToSize(`• ${f}`, W - 28 - 6)
+          lines.forEach((l: string) => { doc.text(l, 17, y); y += 5 })
         })
         y += 4
       }
@@ -160,22 +164,45 @@ export function useExportPdf(filename = 'mailscope-rapport.pdf') {
         y = sectionTitle('Pièces jointes', y)
         data.attachment_analyses.forEach(a => {
           const rColor = COLORS[a.risk]
-          fillRect(14, y - 4, W - 28, 10, COLORS.card)
+          // Ligne 1 : nom + badge risque
+          const indicators = [
+            a.mime_mismatch ? 'MISMATCH TYPE' : null,
+            a.double_extension ? 'DOUBLE EXTENSION' : null,
+            a.has_macros ? 'MACROS' : null,
+            a.has_js_in_pdf ? 'JS/PDF' : null,
+          ].filter(Boolean) as string[]
+
+          const rowH = 8 + (a.mime_mismatch ? 5 : 0) + (indicators.length > 0 ? 5 : 0)
+          fillRect(14, y - 3, W - 28, rowH + 2, COLORS.card)
           doc.setDrawColor(...COLORS.border); doc.setLineWidth(0.2)
-          doc.rect(14, y - 4, W - 28, 10)
-          text(a.filename, 17, y + 2, 8.5, COLORS.text, 'left', true)
-          badge(LEVEL_LABEL[a.risk], W - 50, y + 2, rColor)
-          const mimeInfo = a.mime_mismatch
-            ? `Type déclaré: ${a.declared_mime} | Réel: ${a.real_mime} ⚠ MISMATCH`
-            : `Type confirmé: ${a.real_mime}`
-          text(mimeInfo, 17, y + 7.5, 7, a.mime_mismatch ? COLORS.dangerous : COLORS.muted)
-          if (a.double_extension) {
-            text('⚠ Double extension détectée', W - 14, y + 7.5, 7, COLORS.dangerous, 'right')
+          doc.rect(14, y - 3, W - 28, rowH + 2)
+
+          // nom fichier (tronqué si trop long)
+          doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.text)
+          const maxNameW = W - 28 - 45
+          const nameLines = doc.splitTextToSize(a.filename, maxNameW)
+          doc.text(nameLines[0], 17, y + 2)
+
+          badge(LEVEL_LABEL[a.risk], W - 46, y + 2, rColor)
+
+          // MIME info
+          if (a.mime_mismatch) {
+            doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...COLORS.dangerous)
+            const mimeStr = `Déclaré: ${a.declared_mime}  →  Réel: ${a.real_mime}`
+            const mimeLines = doc.splitTextToSize(mimeStr, W - 28 - 6)
+            mimeLines.forEach((l: string, li: number) => { doc.text(l, 17, y + 7 + li * 4) })
           }
-          if (a.has_macros) {
-            text('⚠ Macros détectées', W - 14, y + 7.5, 7, COLORS.dangerous, 'right')
+
+          // Indicateurs supplémentaires
+          if (indicators.length > 0) {
+            const iy = y + (a.mime_mismatch ? 12 : 7)
+            indicators.forEach((ind, ii) => {
+              doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.dangerous)
+              doc.text(`⚠ ${ind}`, 17 + ii * 38, iy)
+            })
           }
-          y += 14
+
+          y += rowH + 6
         })
         y += 2
       }

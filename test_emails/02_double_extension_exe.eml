@@ -1,23 +1,23 @@
-Content-Type: multipart/mixed; boundary="===============0739765405173845965=="
+Content-Type: multipart/mixed; boundary="===============2150333871325156584=="
 MIME-Version: 1.0
-From: invoice@legitimate-looking-domain.com
+From: invoice@legitimate-corp.com
 To: comptabilite@entreprise.fr
-Subject: Facture 2026-0547 - Reglement urgent
+Subject: =?utf-8?q?Facture_2026-0547_-_R=C3=A8glement_urgent?=
 Date: Tue, 20 May 2026 14:33:00 +0200
-Message-ID: <20260520143300.fake002@legitimate-looking-domain.com>
+Message-ID: <20260520143300.fake002@legitimate-corp.com>
 X-Originating-IP: 91.108.4.200
-Received: from legitimate-looking-domain.com (91.108.4.200) by mx.entreprise.fr with SMTP
+Received: from legitimate-corp.com (91.108.4.200) by mx.entreprise.fr with SMTP; Tue, 20 May 2026 14:33:05 +0200
 
---===============0739765405173845965==
+--===============2150333871325156584==
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: base64
 
 Qm9uam91ciwKClZldWlsbGV6IHRyb3V2ZXIgY2ktam9pbnQgbGEgZmFjdHVyZSAyMDI2LTA1NDcg
-cG91ciB1biBtb250YW50IGRlIDQgODcyLDAwIEVVUi4KCk1lcmNpIGRlIHByb2NlZGVyIGF1IHJl
-Z2xlbWVudCBzb3VzIDQ4aC4KCkNvcmRpYWxlbWVudCwKU2VydmljZSBDb21wdGFiaWxpdGU=
+KDQgODcyLDAwIEVVUikuCgpNZXJjaSBkZSBwcm9jw6lkZXIgYXUgcsOoZ2xlbWVudCBzb3VzIDQ4
+aC4KCkNvcmRpYWxlbWVudCwKU2VydmljZSBDb21wdGFiaWxpdMOp
 
---===============0739765405173845965==
+--===============2150333871325156584==
 Content-Type: application/pdf
 MIME-Version: 1.0
 Content-Transfer-Encoding: base64
@@ -26,6 +26,8 @@ Content-Disposition: attachment; filename="Facture_2026-0547.pdf.exe"
 TVqQAAMAAAAEAAAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
 
---===============0739765405173845965==--
+--===============2150333871325156584==--

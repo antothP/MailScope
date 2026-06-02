@@ -51,6 +51,7 @@ export interface AttachmentAnalysis {
   real_mime: string
   extension: string
   size: number
+  sha256: string
   mime_mismatch: boolean
   has_macros: boolean
   macro_details: string[]

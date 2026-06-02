@@ -68,6 +68,7 @@ class AttachmentAnalysis(BaseModel):
     real_mime: str              # ce que magic bytes dit
     extension: str
     size: int
+    sha256: str                 # hash SHA256 du fichier
     mime_mismatch: bool         # vrai type ≠ extension
     has_macros: bool            # macros OLE détectées
     macro_details: list[str]    # noms des macros suspectes

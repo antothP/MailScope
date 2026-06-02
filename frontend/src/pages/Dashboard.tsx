@@ -67,7 +67,6 @@ export default function Dashboard() {
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 gap-8">
           <div className="animate-fade-up text-center space-y-3">
             <div className="flex items-center justify-center gap-5 mb-2">
-              <img src="/logo.png" alt="MailScope" className="h-24 w-24 object-contain" />
               <span className={`font-brand text-8xl ${C.text} leading-none`}>MailScope</span>
             </div>
           </div>
@@ -481,36 +480,91 @@ function HeadersTab({ result }: { result: ParsedEmail }) {
 /* ─── Onglet Corps ─── */
 
 function BodyTab({ result }: { result: ParsedEmail }) {
-  const [view, setView] = useState<'text' | 'html'>('text')
+  const [view, setView] = useState<'render' | 'text' | 'source'>(
+    result.body_html ? 'render' : 'text'
+  )
+
+  const hasHtml = !!result.body_html
+  const hasText = !!result.body_text
+
+  const tabs = [
+    hasHtml && { id: 'render', label: 'Aperçu' },
+    hasText && { id: 'text',   label: 'Texte brut' },
+    hasHtml && { id: 'source', label: 'Source HTML' },
+  ].filter(Boolean) as { id: string; label: string }[]
+
   return (
     <div className="max-w-5xl mx-auto animate-fade-up space-y-4">
-      <div className="flex gap-2">
-        {result.body_text && (
-          <button onClick={() => setView('text')}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors
-              ${view === 'text' ? `border-[var(--accent)] ${C.accent} ${C.accentBg}` : `${C.border} ${C.muted}`}`}>
-            Texte brut
-          </button>
-        )}
-        {result.body_html && (
-          <button onClick={() => setView('html')}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors
-              ${view === 'html' ? `border-[var(--accent)] ${C.accent} ${C.accentBg}` : `${C.border} ${C.muted}`}`}>
-            HTML source
-          </button>
-        )}
-      </div>
-      <div className={`rounded-xl border ${C.border} ${C.surface} p-5`}>
-        {view === 'text' && result.body_text && (
-          <pre className={`text-sm ${C.text} font-sans leading-relaxed whitespace-pre-wrap break-words`}>{result.body_text}</pre>
-        )}
-        {view === 'html' && result.body_html && (
-          <pre className={`text-xs ${C.muted} font-mono leading-relaxed whitespace-pre-wrap break-all overflow-auto`}>{result.body_html}</pre>
-        )}
-        {!result.body_text && !result.body_html && (
+
+      {/* Barre de sélection de vue */}
+      {tabs.length > 1 && (
+        <div className={`flex gap-1 p-1 rounded-xl border ${C.border} ${C.surface} w-fit`}>
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setView(t.id as any)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150
+                ${view === t.id ? `bg-[var(--bg-card)] ${C.text} shadow-sm border ${C.border}` : `${C.muted} hover:${C.text}`}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Aperçu HTML rendu dans sandbox */}
+      {view === 'render' && result.body_html && (
+        <div className={`rounded-xl border ${C.border} overflow-hidden`}>
+          <div className={`px-4 py-2 border-b ${C.border} ${C.surface} flex items-center gap-2`}>
+            <span className="w-3 h-3 rounded-full bg-[#dc2626]/40" />
+            <span className="w-3 h-3 rounded-full bg-[#d29922]/40" />
+            <span className="w-3 h-3 rounded-full bg-[#16a34a]/40" />
+            <span className={`ml-2 text-xs ${C.muted}`}>Rendu HTML — sandbox (scripts désactivés)</span>
+          </div>
+          <iframe
+            sandbox="allow-same-origin"
+            srcDoc={result.body_html}
+            className="w-full bg-white"
+            style={{ minHeight: '480px', border: 'none' }}
+            title="Corps du message"
+          />
+        </div>
+      )}
+
+      {/* Texte brut formaté */}
+      {view === 'text' && result.body_text && (
+        <div className={`rounded-xl border ${C.border} ${C.surface} p-6`}>
+          <div className={`flex items-center gap-2 mb-4 pb-3 border-b ${C.border}`}>
+            <svg className={`w-4 h-4 ${C.muted}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+            </svg>
+            <span className={`text-xs font-medium ${C.muted} uppercase tracking-widest`}>Texte brut</span>
+          </div>
+          <div className={`text-sm ${C.text} leading-relaxed whitespace-pre-wrap break-words font-sans`}>
+            {result.body_text}
+          </div>
+        </div>
+      )}
+
+      {/* Source HTML avec coloration */}
+      {view === 'source' && result.body_html && (
+        <div className={`rounded-xl border ${C.border} overflow-hidden`}>
+          <div className={`px-4 py-2 border-b ${C.border} ${C.surface} flex items-center gap-2`}>
+            <svg className={`w-4 h-4 ${C.muted}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+            </svg>
+            <span className={`text-xs font-medium ${C.muted} uppercase tracking-widest`}>Source HTML</span>
+            <span className={`ml-auto text-xs ${C.muted}`}>{result.body_html.length} caractères</span>
+          </div>
+          <pre className={`text-xs font-mono leading-relaxed whitespace-pre-wrap break-all overflow-auto p-5 ${C.surface}`}
+            style={{ color: 'var(--text-muted)', maxHeight: '520px' }}>
+            {result.body_html}
+          </pre>
+        </div>
+      )}
+
+      {!hasHtml && !hasText && (
+        <div className={`rounded-xl border ${C.border} ${C.surface} p-10 text-center`}>
           <p className={`${C.muted} text-sm italic`}>Aucun corps de message</p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
