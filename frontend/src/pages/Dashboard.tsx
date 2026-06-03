@@ -17,83 +17,156 @@ const C = {
   accentBg:'bg-[var(--accent-bg)]',
 }
 
+interface Session {
+  id: string
+  filename: string
+  result: AnalyzeResponse
+  activeTab: 'overview' | 'auth' | 'headers' | 'body'
+}
+
 export default function Dashboard() {
-  const [loading, setLoading]   = useState(false)
-  const [result, setResult]     = useState<AnalyzeResponse | null>(null)
-  const [error, setError]       = useState<string | null>(null)
-  const [filename, setFilename] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'auth' | 'headers' | 'body'>('overview')
+  const [sessions, setSessions]           = useState<Session[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [loading, setLoading]             = useState(false)
+  const [error, setError]                 = useState<string | null>(null)
+  const [showHome, setShowHome]           = useState(true)
+
+  const currentSession = sessions.find(s => s.id === activeSessionId) ?? null
+  const onHome = showHome || (sessions.length === 0 && !loading)
 
   async function handleFile(file: File) {
-    setError(null); setResult(null); setFilename(file.name); setLoading(true)
-    try { const d = await analyzeEml(file); setResult(d); setActiveTab('overview') }
-    catch (e: any) { setError(e.message) }
-    finally { setLoading(false) }
+    setError(null); setLoading(true); setShowHome(false)
+    try {
+      const d = await analyzeEml(file)
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      setSessions(prev => [...prev, { id, filename: file.name, result: d, activeTab: 'overview' }])
+      setActiveSessionId(id)
+    } catch (e: any) {
+      setError(e.message)
+      if (sessions.length === 0) setShowHome(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function closeSession(id: string) {
+    setSessions(prev => {
+      const next = prev.filter(s => s.id !== id)
+      if (activeSessionId === id) {
+        const idx = prev.findIndex(s => s.id === id)
+        const fallback = next[idx] ?? next[idx - 1] ?? null
+        setActiveSessionId(fallback?.id ?? null)
+        if (!fallback) setShowHome(true)
+      }
+      return next
+    })
+  }
+
+  function setSessionTab(id: string, tab: Session['activeTab']) {
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, activeTab: tab } : s))
   }
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${C.base}`}>
 
-      {/* Topbar — résultats uniquement */}
-      {result && (
-        <header className={`animate-fade-in shrink-0 h-12 border-b ${C.border} ${C.surface} flex items-center px-6 gap-4 z-10`}>
-          <div className={`flex items-center gap-2 ${C.muted}`}>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
-            </svg>
-            <span className="text-xs font-mono">{filename}</span>
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <button onClick={() => { setResult(null); setFilename(null); setError(null) }}
-              className={`text-xs ${C.accent} transition-colors flex items-center gap-1.5 border ${C.border} hover:${C.border2} px-3 py-1.5 rounded-lg`}>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      {/* Topbar avec onglets de fichiers */}
+      {(sessions.length > 0 || loading) && (
+        <header className={`animate-fade-in shrink-0 border-b ${C.border} ${C.surface} flex items-center z-10`}>
+          {/* Logo compact */}
+          <button onClick={() => { setShowHome(true); setActiveSessionId(null) }}
+            className={`shrink-0 flex items-center gap-2.5 px-4 h-12 border-r ${C.border} hover:bg-[var(--bg-card)] transition-colors`}>
+            <img src="/logo.png" alt="" className="h-6 w-6 object-contain" />
+            <span className={`font-brand text-base ${C.text} leading-none`}>MailScope</span>
+          </button>
+
+          {/* Onglets fichiers */}
+          <div className="flex items-center flex-1 min-w-0 overflow-x-auto">
+            {sessions.map(s => {
+              const isActive = activeSessionId === s.id && !showHome
+              const lvl = s.result.score.level
+              const dot = lvl === 'dangerous' ? '#dc2626' : lvl === 'suspicious' ? '#d29922' : '#16a34a'
+              return (
+                <button key={s.id}
+                  onClick={() => { setActiveSessionId(s.id); setShowHome(false) }}
+                  className={`group shrink-0 flex items-center gap-2 px-4 h-12 border-r text-xs transition-colors max-w-[200px]
+                    ${C.border} ${isActive
+                      ? `bg-[var(--bg-card)] ${C.text} border-b-2 border-b-[var(--accent)]`
+                      : `${C.muted} hover:${C.text} border-b-2 border-b-transparent`}`}>
+                  <span style={{ color: dot }} className="shrink-0 text-xs leading-none">●</span>
+                  <span className="truncate font-mono">{s.filename}</span>
+                  <span onClick={e => { e.stopPropagation(); closeSession(s.id) }}
+                    className="shrink-0 ml-1 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity cursor-pointer rounded p-0.5 hover:bg-[var(--border)]">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </span>
+                </button>
+              )
+            })}
+
+            {/* Bouton + nouvelle analyse */}
+            <label className={`shrink-0 flex items-center gap-1.5 px-4 h-12 text-xs cursor-pointer ${C.muted} hover:${C.text} transition-colors whitespace-nowrap`}>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
               </svg>
               Nouvelle analyse
-            </button>
+              <input type="file" accept=".eml" className="hidden" onChange={e => {
+                const f = e.target.files?.[0]
+                if (f) { handleFile(f); e.target.value = '' }
+              }} />
+            </label>
           </div>
         </header>
       )}
 
       {/* Page d'accueil */}
-      {!result && !loading ? (
+      {onHome && !loading ? (
         <div className="flex-1 flex items-center">
           {/* Image gauche */}
           <div className="hidden lg:flex w-[653px] shrink-0 items-center justify-center px-4 py-6">
             <img src="/fisher.png" alt="" className="w-full h-auto object-contain opacity-90" />
           </div>
 
-          {/* Contenu centré — flex-1 pour occuper tout l'espace restant */}
+          {/* Contenu centré */}
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 gap-8">
-          <div className="animate-fade-up text-center space-y-3">
-            <div className="flex items-center justify-center gap-5 mb-2">
-              <span className={`font-brand text-8xl ${C.text} leading-none`}>MailScope</span>
+            <div className="animate-fade-up text-center space-y-3">
+              <div className="flex items-center justify-center gap-5 mb-2">
+                <span className={`font-brand text-8xl ${C.text} leading-none`}>MailScope</span>
+              </div>
             </div>
-          </div>
 
-          <div className="animate-fade-up delay-1 w-full max-w-2xl">
-            <DropZone onFile={handleFile} loading={loading} />
-          </div>
-
-          {error && (
-            <div className="animate-fade-up flex items-center gap-2.5 bg-[#f85149]/8 border border-[#f85149]/25 text-[#f85149] rounded-xl px-4 py-3 text-sm max-w-2xl w-full">
-              <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd"/>
-              </svg>
-              {error}
+            <div className="animate-fade-up delay-1 w-full max-w-2xl">
+              <DropZone onFile={handleFile} loading={loading} />
             </div>
-          )}
+
+            {error && (
+              <div className="animate-fade-up flex items-center gap-2.5 bg-[#f85149]/8 border border-[#f85149]/25 text-[#f85149] rounded-xl px-4 py-3 text-sm max-w-2xl w-full">
+                <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd"/>
+                </svg>
+                {error}
+              </div>
+            )}
           </div>
 
-          {/* Espace miroir pour garder le contenu centré */}
+          {/* Espace miroir */}
           <div className="hidden lg:block w-[653px] shrink-0" />
         </div>
       ) : loading ? (
         <div className="flex-1 flex items-center justify-center">
           <DropZone onFile={handleFile} loading={true} />
         </div>
-      ) : result ? (
-        <ResultDashboard result={result!.email} headerAnalysis={result!.header_analysis} attachmentAnalyses={result!.attachment_analyses} score={result!.score} fullData={result!} emailFilename={filename ?? undefined} activeTab={activeTab} setActiveTab={setActiveTab} />
+      ) : currentSession ? (
+        <ResultDashboard
+          result={currentSession.result.email}
+          headerAnalysis={currentSession.result.header_analysis}
+          attachmentAnalyses={currentSession.result.attachment_analyses}
+          score={currentSession.result.score}
+          fullData={currentSession.result}
+          emailFilename={currentSession.filename}
+          activeTab={currentSession.activeTab}
+          setActiveTab={tab => setSessionTab(currentSession.id, tab)}
+        />
       ) : null}
     </div>
   )
